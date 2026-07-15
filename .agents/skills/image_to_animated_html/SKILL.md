@@ -1,6 +1,6 @@
 ---
 name: image_to_animated_html
-description: Guidelines and template structures for taking a static input image, replicating it using HTML/CSS/JS Canvas, and building a premium animation engine with interactive controls and WebM exports.
+description: Guidelines and template structures for taking a static input image, replicating it using HTML/CSS/JS Canvas, and building a premium animation engine with interactive controls, user-replaceable assets (logos, text, images), and WebM exports.
 ---
 
 # Replicating and Animating Images in HTML/CSS/JS
@@ -14,7 +14,8 @@ When given an image, inspect and break down:
 * **Geometry & Layout:** Is it a grid (checkerboard, mosaic), a flow of particles, concentric circles, or a geometric vector-like pattern?
 * **Color Palette & Transparency:** Extract dominant colors. Determine if elements have glowing, anti-aliased, or semi-transparent edges. Identify if the animation is best presented on a transparent background (native alpha channel) rather than a solid chroma key green screen, as chroma keying soft borders/glows creates ugly color fringes.
 * **Core Animation Concept:** How should the static elements move? (e.g. expanding tiles, cascading diagonal sweeps, rotating nodes, floating physics elements).
-* **Interactive Parameters:** What controls should the user have? (e.g. transparency toggles, color pickers, grid size/rows, speed/duration, noise/glitch factors, size/scale, spacing).
+* **Customizable Assets:** Identify logos, textual headings/copy, and main decorative images. Designate them as dynamic user-replaceable variables (e.g. replacing a company logo, editing a title, uploading a product image).
+* **Interactive Parameters:** What controls should the user have? (e.g. transparency toggles, custom asset uploaders, text configurations, colors, grid sizes, timings).
 
 ---
 
@@ -25,62 +26,74 @@ Always build a premium, state-of-the-art UI:
   * **Header:** Title, subtitle, and badges detailing version and render type (e.g., Canvas 2D/WebGL).
   * **Workspace:** Two-column grid (e.g., 7-8 columns for viewport, 4-5 columns for parameters).
   * **Viewport Container:** Center the canvas visually inside a dark border wrapper. Preserve standard aspect ratios (like 16:9 or 9:16) cleanly.
-  * **Control Panel:** Group sliders, inputs, toggles, and dropdowns under neat, descriptive headings. Use custom styled inputs matching the dark premium theme.
+  * **Control Panel:** Group settings under clean sections:
+    * **Layout & Timing Settings:** Aspect ratios, duration sliders, speed control.
+    * **Colors & Background:** Transparent toggle, color pickers, chroma keys.
+    * **Custom Asset Controls:** File selectors for custom logos (PNG/SVG) and background images, along with text input fields, font-family selectors (e.g. Google Fonts list), and font-size sliders.
 
 ---
 
 ## 3. Rendering Engine (HTML5 Canvas)
 Use the Canvas 2D Context for high-performance pixel-level rendering:
-* **Resolution & Transparency Control:** Define target canvas resolutions (e.g., 1920x1080 for 16:9, 1080x1920 for 9:16) and scale them down using CSS. If transparent background mode is enabled, clear the canvas dynamically using `ctx.clearRect` instead of filling with a chroma background color:
-  ```javascript
-  function draw() {
-    if (state.transparentBg) {
-      ctx.clearRect(0, 0, state.width, state.height);
-    } else {
-      ctx.fillStyle = state.colorChroma;
-      ctx.fillRect(0, 0, state.width, state.height);
-    }
-    // ... render elements ...
-  }
-  ```
-* **Deterministic Timing & Delays:** Define animation cell structures and coordinate-based delays:
-  ```javascript
-  // Example delay calculation based on distance from center
-  const centerX = cols / 2;
-  const centerY = rows / 2;
-  const dist = Math.hypot(c - centerX, r - centerY);
-  const delay = dist * staggerSpread + Math.random() * noise;
-  ```
-* **Proportional Duration Scaling:** Scale cell delays and cell durations relative to the user's overall duration slider. The last animating element should finish *exactly* when the overall animation reaches `duration`:
-  ```javascript
-  const unscaledCellDuration = 0.5;
-  const scaleFactor = totalUnscaledDuration > 0 ? (state.duration / totalUnscaledDuration) : 1;
-  cell.delay = unscaledDelay * scaleFactor;
-  cell.cellDuration = unscaledCellDuration * scaleFactor;
-  ```
-* **Render Loop:** Run a live loop using `requestAnimationFrame(tick)` during preview:
-  ```javascript
-  function tick(timestamp) {
-    if (!state.isPlaying) return;
-    const elapsed = (timestamp - lastFrameTime) / 1000;
-    lastFrameTime = timestamp;
-    state.currentTime += elapsed;
-    
-    if (state.currentTime >= state.duration) {
-      if (state.isLooping) state.currentTime = 0;
-      else {
-        state.currentTime = state.duration;
-        state.isPlaying = false;
-      }
-    }
-    draw();
-    if (state.isPlaying) requestAnimationFrame(tick);
-  }
-  ```
+* **Resolution & Transparency Control:** Define target canvas resolutions (e.g., 1920x1080 for 16:9, 1080x1920 for 9:16) and scale them down using CSS. If transparent background mode is enabled, clear the canvas dynamically using `ctx.clearRect` instead of filling with a chroma background color.
+* **Asset Rendering & Placeholders:**
+  * **Default Placeholders:** If the design includes a logo or image, render a default placeholder (e.g. drawing a clean geometric shape, initials, or writing a generic text placeholder like "YOUR LOGO HERE") until the user uploads their own file.
+  * **Image Drawing:** Draw uploaded images using `ctx.drawImage()`, scaling and centering them inside their target layout bounding box (using object-fit cover/contain mathematics on the canvas).
+  * **Text Drawing:** Draw text using standard canvas text APIs (`ctx.font`, `ctx.fillText`, `ctx.textAlign`, `ctx.textBaseline`). Ensure font styles scale proportionally with canvas dimensions.
+* **Proportional Duration Scaling:** Scale cell delays and cell durations relative to the user's overall duration slider. The last animating element should finish *exactly* when the overall animation reaches `duration`.
+* **Render Loop:** Run a live loop using `requestAnimationFrame(tick)` during preview, triggering a canvas redraw whenever settings or assets change.
 
 ---
 
-## 4. Decoupled WebM Export Loop (with Alpha Support & High Bitrate)
+## 4. Asynchronous Asset Loading & Security
+To allow users to replace logos, text, and images dynamically without page reloads, implement local browser file readers and dynamic font loaders:
+
+### A. Local Image Loading (FileReader)
+Convert uploaded files into local data URLs to draw them on the canvas immediately:
+```javascript
+function handleImageUpload(file, stateProperty, callback) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      state[stateProperty] = img; // Store image object in state
+      callback(); // Redraw canvas
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+```
+
+### B. Avoiding Canvas Taint (Security)
+If loading external remote fallback assets, always configure the image's `crossOrigin` property before setting its source to prevent the canvas from becoming "tainted". A tainted canvas blocks the video recorder from capturing the stream:
+```javascript
+const img = new Image();
+img.crossOrigin = "anonymous"; // Prevents CORS security taint
+img.src = "https://example.com/logo.png";
+```
+
+### C. Dynamic Web Font Loading
+When the user changes the text's font family, dynamically load the Google Font using the Web Font API to ensure the canvas renders the correct typeface:
+```javascript
+function loadWebFont(fontFamily, callback) {
+  if (!fontFamily) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/\s+/g, '+')}&display=swap`;
+  document.head.appendChild(link);
+  
+  // Wait for font to load before redrawing
+  document.fonts.load(`1em "${fontFamily}"`).then(() => {
+    callback();
+  });
+}
+```
+
+---
+
+## 5. Decoupled WebM Export Loop (with Alpha Support & High Bitrate)
 Never record video bound directly to `requestAnimationFrame` ticks, as this causes speed and duration corruption on high-refresh-rate displays. Instead, use a decoupled frame-by-frame recorder with start and end padding. 
 
 To preserve soft glows, gradients, and anti-aliased borders, export with **native transparency (alpha channel)** and utilize a high bitrate (e.g. **20 Mbps**) to eliminate blocky compression artifacts around transparent edges:
