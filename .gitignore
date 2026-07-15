@@ -1,0 +1,11 @@
+# Ignore all files and directories by default
+*
+
+# Whitelist the Git configuration and documentation files in the root
+!.gitignore
+!README.md
+!HOWTO.md
+
+# Whitelist the custom AI agents directory and its contents recursively
+!.agents/
+!.agents/**
