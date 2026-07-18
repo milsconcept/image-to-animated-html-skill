@@ -10,12 +10,14 @@ Use this skill when the user provides a reference image (such as a pattern, tran
 ---
 
 ## 1. Visual Analysis Phase
-When given an image, inspect and break down:
-* **Geometry & Layout:** Is it a grid (checkerboard, mosaic), a flow of particles, concentric circles, or a geometric vector-like pattern?
-* **Color Palette & Transparency:** Extract dominant colors. Determine if elements have glowing, anti-aliased, or semi-transparent edges. Identify if the animation is best presented on a transparent background (native alpha channel) rather than a solid chroma key green screen, as chroma keying soft borders/glows creates ugly color fringes.
-* **Core Animation Concept:** How should the static elements move? (e.g. expanding tiles, cascading diagonal sweeps, rotating nodes, floating physics elements).
-* **Customizable Assets:** Identify logos, textual headings/copy, and main decorative images. Designate them as dynamic user-replaceable variables (e.g. replacing a company logo, editing a title, uploading a product image).
-* **Interactive Parameters:** What controls should the user have? (e.g. transparency toggles, custom asset uploaders, text configurations, colors, grid sizes, timings).
+When given a reference image, perform a precise spatial and element breakdown:
+* **Spatial & Bounding Box Mapping:** Map out relative coordinates `(x, y, width, height)` in percentages (`0%` to `100%`) for every component (backgrounds, cards, logo containers, headings, subtext, icons). This ensures pixel-accurate structural placement on the canvas regardless of viewport resolution.
+* **Text & Vector Deconstruction:** Never render static image text as hardcoded pixel bitmaps. Extract all text strings into dynamic text variables, estimating font family, weight, size, letter-spacing, and color so the user can edit the text and change fonts on the fly.
+* **Asset Bounding Boxes:** Define bounding boxes with object-fit scaling (`contain` or `cover`) for logos and images so users can easily replace placeholders with their own PNG/SVG files.
+* **Geometry & Layout:** Analyze structural rules: is it a grid, modular cards, concentric circles, particle flow, or geometric vector elements?
+* **Color Palette & Transparency:** Extract dominant hex codes, gradients, and subtle drop-shadows. Identify if soft glows or semi-transparent overlays are present (requiring native alpha channel WebM rendering).
+* **Core Animation Concept:** Determine how each visual element enters, transitions, and loops (e.g., staggered tile expands, typewriter text reveals, floating card hover physics, diagonal sweeps).
+* **Interactive Parameters:** Expose controls for every extracted variable (text inputs, font dropdowns, file uploaders, color pickers, duration, stagger delay).
 
 ---
 
