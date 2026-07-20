@@ -51,47 +51,54 @@ const GlobalTheme = {
 
 ---
 
-## 2. Pro Motion Design Physics & Aesthetics Standards
+## 2. Advanced Motion Design Principles (The 10 Rules of Code Motion)
 
-To eliminate stiff, robotic, or "amateur web" animations and produce After Effects-grade motion graphics:
+To achieve After Effects/Lottie-grade quality, every scene animation must strictly adhere to the **10 Rules of Advanced Code Motion**:
 
-### A. Easing & Spring Physics Engine
-Never use linear or basic quad easing. Implement custom motion curves:
-* **Elastic Overshoot (Snappy Card/Icon Reveals):** 
-  ```javascript
-  // Scale springs up to 1.06x then settles to 1.0x
-  function easeOutBack(t) {
-    const c1 = 1.70158;
-    const c3 = c1 + 1;
-    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-  }
-  ```
-* **Liquid Heavy Deceleration (Smooth Text/Bar Slides):**
-  ```javascript
-  // Ultra-fast initial velocity with smooth braking curve
-  function easeOutExpo(t) {
-    return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
-  }
-  ```
-* **Dynamic Number Roll-Up Interpolation:**
-  Numbers MUST count up smoothly from `0` to target value using `easeOutExpo(t)`. Format numbers with commas/decimals in real time (`0` ➔ `500+`, `0%` ➔ `73.4%`).
+1. **Anticipation & Pre-Roll (Wind-Up):** Before an element expands or slides forward, it contracts slightly in the opposite direction (e.g. shrinking to `0.95x` scale before springing out to `1.06x`).
+2. **Squash & Stretch (Velocity Mass Deformation):** Fast-moving elements deform along their direction of motion (e.g. scaling `sx = 1.12, sy = 0.88` during acceleration and restoring to `1.0, 1.0` upon landing).
+3. **Follow-Through & Overlapping Action (Sub-Element Inertia):** Sub-components inside a container card do NOT stop at the same time as the card. When the glass card lands, text headers and stat counters overshoot and settle 3–4 frames later.
+4. **Asymmetric Slow-In / Slow-Out Curves:** Entrances use aggressive deceleration (`cubic-bezier(0.05, 0.9, 0.1, 1)` / `easeOutExpo`), while exits use accelerating wind-ups (`cubic-bezier(0.9, 0, 0.8, 0.1)`).
+5. **Arcs & Curvilinear Trajectories:** Elements moving across the canvas follow gentle parabolic curves (`x` moves with linear easing while `y` uses sine offset curves) rather than robotic straight diagonal lines.
+6. **Staging, Focal Depth & Gaussian Blur:** Depth of field is simulated by adding subtle blur filters (`ctx.filter = 'blur(4px)'`) and reduced opacity to background grid cards, drawing 100% focal focus to the hero element.
+7. **Kinetic Typography & Word Cascading:** Text characters or words do NOT appear as a flat block. Words slide up character-by-character or word-by-word with staggered 40ms delays and opacity reveals.
+8. **Dynamic Number Roll-Up Interpolation:** All numeric stats count up dynamically from `0` to target (`easeOutExpo`), formatted in real-time with commas and decimals (`0` ➔ `500+`, `0%` ➔ `94.2%`).
+9. **"Living Canvas" Idle Physics:** Resting scene elements are NEVER frozen. Cards float gently with sine-wave physics (`offsetY = Math.sin(time * 1.8) * 5px`), radial ambient glows pulse, and border shine sweeps rotate continuously.
+10. **2.5D Parallax Camera Tracking:** The master canvas applies subtle virtual camera pan and tilt movements (`ctx.translate`, `ctx.scale`) that track the active focal element as it enters and exits.
 
-### B. Cascading Staggered Entrance (Z-Index Layering)
-Never animate all scene elements at once. Cascade layer entrances with strict staggered offsets (60ms–100ms apart):
-1. **$t=0.0\text{s}$:** Background Grid & Ambient Glow fade in.
-2. **$t=0.1\text{s}$:** Glassmorphic Container Card scales up with `easeOutBack`.
-3. **$t=0.2\text{s}$:** Primary Heading Text slides up with opacity.
-4. **$t=0.3\text{s}$:** Hero Stat Number / Chart Bars animate and count up.
-5. **$t=0.4\text{s}$:** Subtext, badges, and accent pings pop in.
+---
 
-### C. "Living Canvas" Idle Physics (Continuous Micro-Animations)
-Scene elements must NEVER be completely frozen while sitting on screen. Apply subtle continuous physics:
-* **Sine-Wave Floating:** Cards hover gently using `offsetY = Math.sin(time * 1.8) * 5`.
-* **Glow Pulsing:** Radial ambient glows pulse (`opacity = 0.15 + Math.sin(time * 2.5) * 0.08`).
-* **Glass Shimmer Sweep:** A subtle 45° linear gradient shine sweeps across card borders every 3 seconds.
+## 3. High-End Visual Aesthetics & Scene Reference Image Integration
 
-### D. Motion Blur Simulation
-High-speed sliding elements apply a velocity-based directional shadow stretch (`ctx.shadowBlur = speed * 4`) during entrance to simulate organic camera motion blur at 60fps.
+To eliminate flat, generic "amateur web" visuals and create cinematic motion graphic visuals:
+
+### A. Per-Scene Reference Image Layering (`scene.referenceImage`)
+Each scene beat can accept an uploaded reference image (e.g. Nano Banana render, Figma UI mockup, 3D product render, or screenshot):
+* **Focal Container Compositing:** The reference image is rendered inside a glassmorphic viewport card with rounded corners, subtle drop shadow (`shadowBlur = 30`), and 1px gradient border highlight.
+* **Hybrid Overlay Layering:** Editable kinetic text, dynamic counter badges, particle halos, and chart overlays render seamlessly *on top of or beside* the scene's reference image.
+
+```javascript
+function drawSceneReferenceImage(ctx, img, bounds) {
+  if (!img) return;
+  ctx.save();
+  // Draw glass card background & shadow
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 35;
+  ctx.fillStyle = GlobalTheme.colors.cardFill;
+  roundRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, GlobalTheme.geometry.borderRadius);
+  ctx.fill();
+  
+  // Clip and draw image with object-fit contain/cover mathematics
+  ctx.clip();
+  drawImageObjectFit(ctx, img, bounds.x, bounds.y, bounds.width, bounds.height, 'contain');
+  ctx.restore();
+}
+```
+
+### B. Cinematic Shaders & Texture Compositing
+* **Procedural Film Grain Texture:** Blend a 3% opacity noise overlay (`globalCompositeOperation = 'overlay'`) across the background canvas to eliminate flat color banding.
+* **Multi-Stop Mesh Gradients:** Use 3+ stop color gradients (`#6366F1` ➔ `#8B5CF6` ➔ `#EC4899`) for chart fills and hero text rather than flat 2-color fills.
+* **Glow Blooming:** Render ambient radial glows behind cards using `globalCompositeOperation = 'screen'` or `'lighter'` with multi-pass Gaussian blur steps.
 
 ## 3. Multi-Scene Data Architecture
 
