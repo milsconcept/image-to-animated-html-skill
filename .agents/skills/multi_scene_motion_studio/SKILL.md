@@ -51,15 +51,47 @@ const GlobalTheme = {
 
 ---
 
-## 2. Motion Language & Choreography
+## 2. Pro Motion Design Physics & Aesthetics Standards
 
-All scenes must share identical motion feel (easing curves and timing proportions) so the video flows naturally:
+To eliminate stiff, robotic, or "amateur web" animations and produce After Effects-grade motion graphics:
 
-* **Easing Curves:** Use `cubic-bezier(0.16, 1, 0.3, 1)` for smooth, premium ease-out expansions.
-* **Staggered Delays:** Maintain a consistent `0.1s - 0.15s` delay step between headings, data-viz elements, and body text.
-* **Duration Scaling:** Every scene calculates its local animation duration dynamically based on `scene.duration`, ensuring the final element finishes *exactly* when the scene timestamp reaches `scene.duration`.
+### A. Easing & Spring Physics Engine
+Never use linear or basic quad easing. Implement custom motion curves:
+* **Elastic Overshoot (Snappy Card/Icon Reveals):** 
+  ```javascript
+  // Scale springs up to 1.06x then settles to 1.0x
+  function easeOutBack(t) {
+    const c1 = 1.70158;
+    const c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  }
+  ```
+* **Liquid Heavy Deceleration (Smooth Text/Bar Slides):**
+  ```javascript
+  // Ultra-fast initial velocity with smooth braking curve
+  function easeOutExpo(t) {
+    return t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+  }
+  ```
+* **Dynamic Number Roll-Up Interpolation:**
+  Numbers MUST count up smoothly from `0` to target value using `easeOutExpo(t)`. Format numbers with commas/decimals in real time (`0` ➔ `500+`, `0%` ➔ `73.4%`).
 
----
+### B. Cascading Staggered Entrance (Z-Index Layering)
+Never animate all scene elements at once. Cascade layer entrances with strict staggered offsets (60ms–100ms apart):
+1. **$t=0.0\text{s}$:** Background Grid & Ambient Glow fade in.
+2. **$t=0.1\text{s}$:** Glassmorphic Container Card scales up with `easeOutBack`.
+3. **$t=0.2\text{s}$:** Primary Heading Text slides up with opacity.
+4. **$t=0.3\text{s}$:** Hero Stat Number / Chart Bars animate and count up.
+5. **$t=0.4\text{s}$:** Subtext, badges, and accent pings pop in.
+
+### C. "Living Canvas" Idle Physics (Continuous Micro-Animations)
+Scene elements must NEVER be completely frozen while sitting on screen. Apply subtle continuous physics:
+* **Sine-Wave Floating:** Cards hover gently using `offsetY = Math.sin(time * 1.8) * 5`.
+* **Glow Pulsing:** Radial ambient glows pulse (`opacity = 0.15 + Math.sin(time * 2.5) * 0.08`).
+* **Glass Shimmer Sweep:** A subtle 45° linear gradient shine sweeps across card borders every 3 seconds.
+
+### D. Motion Blur Simulation
+High-speed sliding elements apply a velocity-based directional shadow stretch (`ctx.shadowBlur = speed * 4`) during entrance to simulate organic camera motion blur at 60fps.
 
 ## 3. Multi-Scene Data Architecture
 
